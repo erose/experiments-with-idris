@@ -1,0 +1,7 @@
+Idris mysteries:
+  - why doesn't this definition of cong work? (renamed so as not to shadow cong)
+
+cong_ : { f : a -> b } -> x = y -> f x = f y
+cong_ (x = x) = (f x = f x)
+
+  - It doesn't work because (x = x) is not an INSTANCE of the type x = y, it's a different type. You can't pattern-match against a type.

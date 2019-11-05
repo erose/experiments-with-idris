@@ -3,7 +3,7 @@ cong_ : { f : a -> b } -> x = y -> f x = f y
 cong_ Refl = Refl
 
 sameCons : {xs : List a} -> {ys: List a} -> xs = ys -> x :: xs = x :: ys
-sameCons Refl = Refl
+sameCons prf = rewrite prf in Refl
 
 -- Constructs a proof that its two arguments are equal, if such a proof exists. This is checkEqNat
 -- in the book, but I renamed it.
