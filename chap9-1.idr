@@ -52,7 +52,3 @@ isLast (x :: y :: ys) value =
 
     -- If not, then it won't be an element of this longer list either.
     No contra => No (notLastOfLonger contra)
-
-
--- 9.2
-
