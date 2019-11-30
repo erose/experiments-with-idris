@@ -5,3 +5,10 @@ cong_ : { f : a -> b } -> x = y -> f x = f y
 cong_ (x = x) = (f x = f x)
 
   - It doesn't work because (x = x) is not an INSTANCE of the type x = y, it's a different type. You can't pattern-match against a type.
+
+
+  - why doesn't this function work?
+
+    -- Utility function for constructing a word state from a string.
+    newWordState : (s : String) -> Nat -> WordState (length s) (length s)
+    newWordState s guessesRemaining = MkWordState s (fromList $ unpack s)

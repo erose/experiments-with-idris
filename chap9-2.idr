@@ -1,15 +1,23 @@
 import Data.Vect
--- %default total
 
 
 -- 9.2
 
 -- Implemented in 9.1, but required here. Removes the first instance of a value from a vector, if
 -- there is a proof that the value is in the vector.
-removeElem : (value : a) -> (xs : Vect (S n) a) -> (prf : Elem value xs) -> Vect n a
+total removeElem : (value : a) -> (xs : Vect (S n) a) -> (prf : Elem value xs) -> Vect n a
 removeElem value (value :: ys) Here = ys
 removeElem {n = Z} value (y :: []) (There later) = absurd later
 removeElem {n = (S k)} value (y :: ys) (There later) = y :: removeElem value ys later
+
+-- Not implemented in the standard library.
+total replaceChars : String -> Vect n Char -> Char -> String
+replaceChars s needleChars replacementChar = pack $ go $ unpack s where
+  go : List Char -> List Char
+  go [] = []
+  go (x::xs) = case (isElem x needleChars) of
+    Yes _ => [replacementChar] ++ (go xs)
+    No _ => [x] ++ (go xs)
 
 data WordState : (guessesRemaining : Nat) -> (letters : Nat) -> Type where
   MkWordState :
@@ -39,12 +47,12 @@ Uninhabited (ValidGuess []) where
 Uninhabited (ValidGuess (x :: y :: cs)) where
   uninhabited Letter impossible
 
-isValidGuess : (cs : List Char) -> Dec (ValidGuess cs)
+total isValidGuess : (cs : List Char) -> Dec (ValidGuess cs)
 isValidGuess [] = No absurd
 isValidGuess (x :: []) = Yes (Letter x)
 isValidGuess (x :: y :: cs) = No absurd
 
-isValidGuessString : (s : String) -> Dec (ValidGuess $ unpack s)
+total isValidGuessString : (s : String) -> Dec (ValidGuess $ unpack s)
 isValidGuessString s = isValidGuess (unpack s)
 
 readGuess : IO (x ** ValidGuess x)
@@ -57,10 +65,8 @@ readGuess = do putStr "Guess: "
                                  -- If their guess was invalid, try again.
                                  readGuess
 
-processGuess :
-  (letter : Char) ->
-  WordState (S guesses) (S letters) ->
-  Either (WordState guesses (S letters)) (WordState (S guesses) letters)
+total processGuess :
+  (letter : Char) -> WordState (S j) (S k) -> Either (WordState j (S k)) (WordState (S j) k)
 processGuess letter (MkWordState word missing) =
   case (isElem letter missing) of
 
@@ -69,24 +75,36 @@ processGuess letter (MkWordState word missing) =
     Yes prf => Right (MkWordState word (removeElem letter missing prf))
     No _ => Left (MkWordState word missing)
 
-game : WordState (S guesses) (S letters) -> IO Finished
-game {guesses} {letters} state = do
-  guess <- readGuess
-  let ([c] ** _) = guess 
+total stateToString : WordState j k -> String
+stateToString (MkWordState word missing) =
+  wordWithBlanks ++ ", guesses remaining: " ++ (show j) where
+    wordWithBlanks = replaceChars word missing '_'
 
-  case (processGuess c state) of
-    Left newState => case guesses of
-      Z => pure (Lost newState)
-      S _ => game newState
-    Right newState => case letters of
-      Z => pure (Won newState)
-      S _ => game newState
+game : WordState (S j) (S k) -> IO Finished
+game {j} {k} state = do
+  (_ ** Letter letter) <- readGuess
+
+  case (processGuess letter state) of
+    Left newState => do
+      putStrLn $ stateToString newState
+      case j of
+        Z => pure (Lost newState)
+        S _ => game newState
+    Right newState => do
+      putStrLn $ stateToString newState
+      case k of
+        Z => pure (Won newState)
+        S _ => game newState
+
+-- Utility function for constructing a word state from a string.
+total newWordState : (cs : List Char) -> Nat -> WordState (length cs) (length cs)
+newWordState cs guessesRemaining = MkWordState (pack cs) (fromList cs)
 
 main : IO ()
 main = do
-  result <- game {guesses=2} (MkWordState "cow" ['c', 'o', 'w'])
+  result <- game (newWordState (unpack "COW") 3)
   case result of
-    Lost (MkWordState word _) =>
+    Lost (MkWordState word missing) => do
       putStrLn ("You lose. The word was " ++ word)
 
     Won _ =>
