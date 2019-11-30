@@ -7,8 +7,13 @@ cong_ (x = x) = (f x = f x)
   - It doesn't work because (x = x) is not an INSTANCE of the type x = y, it's a different type. You can't pattern-match against a type.
 
 
-  - why doesn't this function work?
+- why doesn't this function work?
 
-    -- Utility function for constructing a word state from a string.
-    newWordState : (s : String) -> Nat -> WordState (length s) (length s)
-    newWordState s guessesRemaining = MkWordState s (fromList $ unpack s)
+  -- Utility function for constructing a word state from a string.
+  newWordState : (s : String) -> Nat -> WordState (length s) (length s)
+  newWordState s guessesRemaining = MkWordState s (fromList $ unpack s)
+
+- How to prove that I can subtract a Fin from a Nat where I know the Nat is larger?
+  - (cert: ElemCountIs ((-) {smaller=4} 9 (finToNat n)) Blank (toList $ Data.Vect.concat rows)) ->
+
+- How do I implement decEq for a custom data type like Symbol?
