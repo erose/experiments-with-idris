@@ -66,53 +66,74 @@ candidatesFor {moves} {toMove} state = map doMoveAndReturnPair candidatePosition
         (move ** DoPossibleHumanMove state move)
 
 mutual
-  nextOptimalMove : PossibleGameState n moves toMove Nothing -> Maybe (m ** (PossibleGameState (S n) (m::moves) (opponent toMove) (currentWinnerIfAny $ m::moves)))
-  nextOptimalMove {n} {moves} {toMove} state = head' sortedByWinner where
+  -- DUPLICATED.
+  nextOptimalComputerMove : PossibleGameState n moves Computer Nothing -> Maybe (m ** (PossibleGameState (S n) (m::moves) Human (currentWinnerIfAny $ m::moves)))
+  nextOptimalComputerMove {n} {moves} state = head' sortedByWinner where
     bestForComputer : Maybe Player -> Maybe Player -> Ordering
     bestForComputer (Just Computer) _ = GT
     bestForComputer Nothing (Just Human) = LT
     bestForComputer _ _ = EQ
 
-    bestForHuman : Maybe Player -> Maybe Player -> Ordering
-    bestForHuman (Just Human) _ = GT
-    bestForHuman Nothing (Just Computer) = LT
-    bestForHuman _ _ = EQ
-
-    bestForCurrentPlayer : Maybe Player -> Maybe Player -> Ordering
-    bestForCurrentPlayer = case toMove of
-      Computer =>
-        bestForComputer
-
-      Human =>
-        bestForHuman
-
-    candidates : List (m ** (PossibleGameState (S n) (m::moves) (opponent toMove) (currentWinnerIfAny $ m::moves)))
+    candidates : List (m ** (PossibleGameState (S n) (m::moves) Human (currentWinnerIfAny $ m::moves)))
     candidates = candidatesFor state
 
     winners : List (Maybe Player)
     winners = map (\(m ** s) => eventualWinner s) candidates
 
-    decoratedWithWinner : List (Maybe Player, (m ** (PossibleGameState (S n) (m::moves) (opponent toMove) (currentWinnerIfAny $ m::moves))))
+    decoratedWithWinner : List (Maybe Player, (m ** (PossibleGameState (S n) (m::moves) Human (currentWinnerIfAny $ m::moves))))
     decoratedWithWinner = zip winners candidates
 
-    decoratedWithWinnerSortedByWinner: List (Maybe Player, (m ** (PossibleGameState (S n) (m::moves) (opponent toMove) (currentWinnerIfAny $ m::moves))))
-    decoratedWithWinnerSortedByWinner = sortBy (bestForCurrentPlayer . fst) decoratedWithWinner
+    decoratedWithWinnerSortedByWinner: List (Maybe Player, (m ** (PossibleGameState (S n) (m::moves) Human (currentWinnerIfAny $ m::moves))))
+    decoratedWithWinnerSortedByWinner = sortBy (\(x, _), (y, _) => bestForComputer x y) decoratedWithWinner
 
-    sortedByWinner : List (m ** (PossibleGameState (S n) (m::moves) (opponent toMove) (currentWinnerIfAny $ m::moves)))
+    sortedByWinner : List (m ** (PossibleGameState (S n) (m::moves) Human (currentWinnerIfAny $ m::moves)))
     sortedByWinner = map snd decoratedWithWinnerSortedByWinner
 
-  eventualWinner : PossibleGameState _ _ _ maybeWinner -> Maybe Player
-  eventualWinner {maybeWinner} state = case maybeWinner of
+  -- DUPLICATED.
+  nextOptimalHumanMove : PossibleGameState n moves Human Nothing -> Maybe (m ** (PossibleGameState (S n) (m::moves) Computer (currentWinnerIfAny $ m::moves)))
+  nextOptimalHumanMove {n} {moves} state = head' sortedByWinner where
+    bestForHuman : Maybe Player -> Maybe Player -> Ordering
+    bestForHuman (Just Human) _ = GT
+    bestForHuman Nothing (Just Computer) = LT
+    bestForHuman _ _ = EQ
+
+    candidates : List (m ** (PossibleGameState (S n) (m::moves) Computer (currentWinnerIfAny $ m::moves)))
+    candidates = candidatesFor state
+
+    winners : List (Maybe Player)
+    winners = map (\(m ** s) => eventualWinner s) candidates
+
+    decoratedWithWinner : List (Maybe Player, (m ** (PossibleGameState (S n) (m::moves) Computer (currentWinnerIfAny $ m::moves))))
+    decoratedWithWinner = zip winners candidates
+
+    decoratedWithWinnerSortedByWinner: List (Maybe Player, (m ** (PossibleGameState (S n) (m::moves) Computer (currentWinnerIfAny $ m::moves))))
+    decoratedWithWinnerSortedByWinner = sortBy (\(x, _), (y, _) => bestForHuman x y) decoratedWithWinner
+
+    sortedByWinner : List (m ** (PossibleGameState (S n) (m::moves) Computer (currentWinnerIfAny $ m::moves)))
+    sortedByWinner = map snd decoratedWithWinnerSortedByWinner
+
+  eventualWinner : PossibleGameState _ _ toMove maybeWinner -> Maybe Player
+  eventualWinner {toMove} {maybeWinner} state = case maybeWinner of
     Just player =>
       Just player -- Base case.
 
     Nothing =>
-      case (nextOptimalMove state) of
-        Nothing =>
-          Nothing -- Another base case. No moves left to be made! It's a tie.
+      case toMove of
+        Computer =>
+          case (nextOptimalComputerMove state) of
+            Nothing =>
+              Nothing -- Another base case. No moves left to be made! It's a tie.
 
-        Just (_ ** nextState) =>
-          eventualWinner nextState
+            Just (_ ** nextState) =>
+              eventualWinner nextState
+
+        Human =>
+          case (nextOptimalHumanMove state) of
+            Nothing =>
+              Nothing -- Another base case. No moves left to be made! It's a tie.
+
+            Just (_ ** nextState) =>
+              eventualWinner nextState
 
 -- Moves are in reverse order.
 data GameState : (turnNumber: Nat) -> (moves: Vect turnNumber Move) -> (toMove: Player) -> (maybeWinner: Maybe Player) -> Type where
