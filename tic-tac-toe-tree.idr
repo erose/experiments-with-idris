@@ -36,8 +36,9 @@ Move = (Player, Position)
 
 -- TODO: A vastly simplified game.
 total currentResultIfAny : Vect _ Move -> Maybe Result
-currentResultIfAny ((Computer, (FZ, FZ))::_) = Just ComputerWins
-currentResultIfAny _ = Just HumanWins
+currentResultIfAny (x::y::(Computer, (FZ, FZ))::_) = Just ComputerWins
+currentResultIfAny (x::y::z::z'::_) = Just HumanWins
+currentResultIfAny _ = Nothing
 
 data PossibleGameState : (turnNumber: Nat) -> (moves: Vect turnNumber Move) -> (toMove: Player) -> (maybeResult: Maybe Result) -> Type where
   Initial : PossibleGameState 0 [] Computer Nothing
